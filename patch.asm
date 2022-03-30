@@ -50,9 +50,9 @@ musicOffset         equ $fffeff
     org     $208
 Game
 
-    ; Original PlaySound sub routine
+    ; Original HandleSoundCommand sub routine
     org     $eb9bc
-    jsr     PlaySound
+    jsr     HandleSoundCommand
     nop
 
     ; Main menu
@@ -111,32 +111,28 @@ SetMapMusic
     rts
 
 
-PlaySound
-    ; Stop music?
-    cmp.b   #$f2,d0
-    bne     .checkPause
-
-        MSU_COMMAND MSU_PAUSE, 0
-        bra .noMusic
-
-    ; TODO: f3/f4?
-
-    ; Pause music
-.checkPause
-    cmp.b   #$f5,d0
+HandleSoundCommand
+    ; Stop/Pause music?
+    cmp.b   #$f2,d0 ; Stop
+    beq     .stopMusic
+    cmp.b   #$f5,d0 ; Pause
     bne     .checkResume
-
+.stopMusic
         MSU_COMMAND MSU_PAUSE, 0
-        move.b  #$f2,d0
         bra     .noMusic
 
     ; Resume music
 .checkResume
     cmp.b   #$f6,d0
-    bne     .checkMusic
-
+    bne     .checkFadeout
         MSU_COMMAND MSU_RESUME, 0
-        move.b  #$f2,d0
+        bra     .noMusic
+
+    ; Fadeout music
+.checkFadeout
+    cmp.b   #$f7,d0
+    bne     .checkMusic
+        MSU_COMMAND MSU_PAUSE, 75
         bra     .noMusic
 
     ; Play music?
@@ -174,9 +170,7 @@ PlaySound
     MSU_WAIT
     move.w  d0,MSU_COMM_CMD
     addq.b  #1,MSU_COMM_CMD_CK
-
-    ; Stop fm music
-    move.b  #$f2,d0
+    clr.b   d0
 
 .noMusic
 
